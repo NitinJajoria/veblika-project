@@ -57,19 +57,27 @@ async function updateStatus(id, status, logMsg) {
 
 // ─── Step 1: Run Docker container on EC2 via SSM SendCommand ─────────────────
 
-async function runDockerOnEC2(clientName, domain, image) {
+async function runDockerOnEC2(clientName, domain, image, port) {
   // DEMO MODE: simulate SSM call with a delay
   if (DEMO_MODE) {
     await new Promise((r) => setTimeout(r, 1500));
     return 'mock-ssm-command-' + Date.now();
   }
 
+  const containerName = `deployflow-${clientName}`;
   const dockerCommand = [
+    `echo "Starting deployment cleanup for client: ${clientName}..."`,
+    // 1. Stop and remove old container with this client name to avoid name conflicts
+    `docker stop ${containerName} 2>/dev/null || true`,
+    `docker rm ${containerName} 2>/dev/null || true`,
+    // 2. Preemptively stop and remove any container using the target port to avoid port conflicts
+    'CONFLICT_CONTAINERS=$(docker ps -laq --filter "publish=' + port + '")',
+    'if [ ! -z "$CONFLICT_CONTAINERS" ]; then echo "Stopping conflicting container on port ' + port + '"; docker stop $CONFLICT_CONTAINERS 2>/dev/null || true; docker rm $CONFLICT_CONTAINERS 2>/dev/null || true; fi',
+    `echo "Pulling image ${image}..."`,
     `docker pull ${image}`,
-    `docker stop ${clientName} 2>/dev/null || true`,
-    `docker rm ${clientName} 2>/dev/null || true`,
-    `docker run -d --name ${clientName} -p 3001:80 --label domain=${domain} ${image}`,
-    `echo "Container started for ${domain}"`,
+    `echo "Launching container ${containerName} on host port ${port}..."`,
+    `docker run -d --name ${containerName} -p ${port}:80 --label domain=${domain} ${image}`,
+    `echo "Deployment successfully completed!"`
   ].join(' && ');
 
   const params = {
@@ -78,7 +86,7 @@ async function runDockerOnEC2(clientName, domain, image) {
     Parameters: {
       commands: [dockerCommand],
     },
-    Comment: `Deploy ${image} for ${clientName} on ${domain}`,
+    Comment: `Deploy ${image} for ${clientName} on ${domain} (Port ${port})`,
   };
 
   const command = new SendCommandCommand(params);
@@ -115,16 +123,16 @@ async function invokeLambda(clientName, domain, image) {
 const worker = new Worker(
   'deployments',
   async (job) => {
-    const { deploymentId, clientName, domain, image } = job.data;
-    console.log(`[Worker] Processing job for ${clientName} (${domain})`);
+    const { deploymentId, clientName, domain, image, port } = job.data;
+    console.log(`[Worker] Processing job for ${clientName} (${domain}) on port ${port}`);
 
     // Mark as processing
-    await updateStatus(deploymentId, 'processing', 'Worker picked up job');
+    await updateStatus(deploymentId, 'processing', `Worker picked up job. Target port: ${port}`);
 
     // ── Step 1: Docker on EC2 via SSM ──────────────────────────────────────
     let commandId;
     try {
-      commandId = await runDockerOnEC2(clientName, domain, image);
+      commandId = await runDockerOnEC2(clientName, domain, image, port);
       await updateStatus(
         deploymentId,
         'processing',
@@ -154,7 +162,7 @@ const worker = new Worker(
     }
 
     // ── Mark completed ────────────────────────────────────────────────────
-    await updateStatus(deploymentId, 'completed', `Deployment finished for ${domain}`);
+    await updateStatus(deploymentId, 'completed', `Deployment finished for ${domain} on port ${port}`);
   },
   {
     connection,

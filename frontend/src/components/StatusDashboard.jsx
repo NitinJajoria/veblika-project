@@ -81,6 +81,13 @@ function DeploymentCard({ deployment, onUpdate }) {
       <div className="card-image">
         <span>Image:</span>
         <span className="image-tag">{data.image}</span>
+        {data.port && (
+          <>
+            <span style={{ margin: '0 8px', color: 'var(--text-muted)' }}>|</span>
+            <span>Port:</span>
+            <span className="port-tag">{data.port}</span>
+          </>
+        )}
       </div>
 
       {data.updatedAt && (

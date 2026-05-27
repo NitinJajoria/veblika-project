@@ -418,6 +418,16 @@ body {
   border: 1px solid rgba(59, 91, 219, 0.2);
 }
 
+.port-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--status-pending-text);
+  padding: 1px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+
 .card-meta {
   font-size: 0.72rem;
   color: var(--text-muted);

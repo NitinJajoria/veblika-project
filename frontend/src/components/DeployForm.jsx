@@ -26,6 +26,7 @@ export default function DeployForm({ onDeployed }) {
       onDeployed({
         deploymentId: data.deploymentId,
         ...form,
+        port: data.port,
         status: 'pending',
         logs: [],
       });

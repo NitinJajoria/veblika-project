@@ -22,6 +22,11 @@ const deploymentSchema = new mongoose.Schema(
       enum: ['pending', 'processing', 'completed', 'failed'],
       default: 'pending',
     },
+    port: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
     logs: [String],
   },
   { timestamps: true }
