@@ -9,11 +9,11 @@ import Deployment from '../models/Deployment.js';
  */
 export async function getAvailablePort() {
   const latestDeployment = await Deployment
-    .findOne({})
+    .findOne({ port: { $exists: true, $ne: null, $type: 'number' } })
     .sort({ port: -1 })
     .exec();
 
-  if (!latestDeployment) {
+  if (!latestDeployment || typeof latestDeployment.port !== 'number' || isNaN(latestDeployment.port)) {
     return 3001;
   }
 
