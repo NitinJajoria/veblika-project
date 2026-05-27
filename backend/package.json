@@ -1,0 +1,28 @@
+{
+  "name": "deployment-panel-backend",
+  "version": "1.0.0",
+  "description": "Deployment control panel backend — Express, BullMQ, Mongoose, AWS SDK v3",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "worker": "nodemon src/worker.js",
+    "start": "node src/server.js",
+    "start:worker": "node src/worker.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.1053.0",
+    "@aws-sdk/client-ssm": "^3.1053.0",
+    "bullmq": "^5.77.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ioredis": "^5.10.1",
+    "mongoose": "^9.6.2",
+    "nodemon": "^3.1.14",
+    "uuid": "^14.0.0"
+  }
+}
