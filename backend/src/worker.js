@@ -68,7 +68,7 @@ async function runDockerOnEC2(clientName, domain, image) {
     `docker pull ${image}`,
     `docker stop ${clientName} 2>/dev/null || true`,
     `docker rm ${clientName} 2>/dev/null || true`,
-    `docker run -d --name ${clientName} -p 80 --label domain=${domain} ${image}`,
+    `docker run -d --name ${clientName} -p 3001:80 --label domain=${domain} ${image}`,
     `echo "Container started for ${domain}"`,
   ].join(' && ');
 
