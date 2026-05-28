@@ -1,4 +1,3 @@
-```jsx
 import { useState } from 'react';
 import axios from 'axios';
 
@@ -31,7 +30,7 @@ export default function DeployForm({ onDeployed }) {
         ...prev,
         clientName: value,
         domain: sanitized
-          ? `${ sanitized }.${ SERVER_IP }.sslip.io`
+          ? `${sanitized}.${SERVER_IP}.sslip.io`
           : '',
       }));
 
@@ -52,7 +51,7 @@ export default function DeployForm({ onDeployed }) {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(`${ API } /api/deploy`, form);
+      const { data } = await axios.post(`${API} /api/deploy`, form);
 
       onDeployed({
         deploymentId: data.deploymentId,
@@ -136,7 +135,7 @@ export default function DeployForm({ onDeployed }) {
               className="form-input"
               value={form.domain}
               onChange={handleChange}
-              placeholder={`awesome.${ SERVER_IP }.sslip.io`}
+              placeholder={`awesome.${SERVER_IP}.sslip.io`}
               required
               autoComplete="off"
             />
@@ -203,4 +202,3 @@ export default function DeployForm({ onDeployed }) {
     </div>
   );
 }
-```
