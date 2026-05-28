@@ -1,28 +1,14 @@
+import { generateNginxConfig } from './generateNginxConfig.js';
+
 export function buildNginxCommands(domain, port) {
-    const config = `
-server {
-    listen 80;
-    server_name ${domain};
-
-    location / {
-        proxy_pass http://localhost:${port};
-
-        proxy_http_version 1.1;
-
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-`;
-
-    const escapedConfig = config
-        .replace(/\n/g, '\\n')
-        .replace(/"/g, '\\"');
+    const config = generateNginxConfig(domain, port);
 
     return [
-        `echo "${escapedConfig}" | sudo tee /etc/nginx/sites-available/${domain}`,
+        `cat > /tmp/${domain}.conf <<'EOF'
+${config}
+EOF`,
+
+        `sudo mv /tmp/${domain}.conf /etc/nginx/sites-available/${domain}`,
 
         `sudo ln -sf /etc/nginx/sites-available/${domain} /etc/nginx/sites-enabled/${domain}`,
 
