@@ -51,7 +51,7 @@ export default function DeployForm({ onDeployed }) {
     setLoading(true);
 
     try {
-      const { data } = await axios.post(`${API} /api/deploy`, form);
+      const { data } = await axios.post(`${API}/api/deploy`, form);
 
       onDeployed({
         deploymentId: data.deploymentId,
