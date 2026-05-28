@@ -101,23 +101,38 @@ function DeploymentCard({ deployment, onUpdate }) {
         </div>
       )}
 
-      {data.logs && data.logs.length > 0 && (
-        <>
-          <button
-            className="logs-toggle"
-            onClick={() => setShowLogs((v) => !v)}
-            id={`logs-toggle-${data.deploymentId || data._id}`}
-          >
-            {showLogs ? '▲' : '▼'} Logs ({data.logs.length})
-          </button>
-          {showLogs && (
-            <pre className="logs-panel">
-              {data.logs.map((line, i) => (
-                <LogLine key={i} line={line} />
-              ))}
-            </pre>
+      {(data.status === 'completed' || (data.logs && data.logs.length > 0)) && (
+        <div className="card-actions">
+          {data.status === 'completed' && (
+            <a
+              href={`http://${data.domain}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-open-app"
+              id={`open-app-${data.deploymentId || data._id}`}
+            >
+              🌐 Open App
+            </a>
           )}
-        </>
+
+          {data.logs && data.logs.length > 0 && (
+            <button
+              className="logs-toggle"
+              onClick={() => setShowLogs((v) => !v)}
+              id={`logs-toggle-${data.deploymentId || data._id}`}
+            >
+              {showLogs ? '▲' : '▼'} Logs ({data.logs.length})
+            </button>
+          )}
+        </div>
+      )}
+
+      {showLogs && data.logs && data.logs.length > 0 && (
+        <pre className="logs-panel">
+          {data.logs.map((line, i) => (
+            <LogLine key={i} line={line} />
+          ))}
+        </pre>
       )}
     </div>
   );

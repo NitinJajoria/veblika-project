@@ -491,6 +491,46 @@ body {
   color: #c8d8f8;
 }
 
+/* ─── Card Actions ───────────────────────────────────────────── */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.card-actions .logs-toggle {
+  margin-top: 0;
+}
+
+.btn-open-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(16, 185, 129, 0.08));
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  color: var(--status-completed-text);
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-open-app:hover {
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(16, 185, 129, 0.16));
+  border-color: var(--status-completed-text);
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+  transform: translateY(-0.5px);
+}
+
+.btn-open-app:active {
+  transform: translateY(0);
+}
+
 /* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .form-grid {
