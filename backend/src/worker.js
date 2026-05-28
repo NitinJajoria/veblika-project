@@ -4,6 +4,7 @@ import { SSMClient, SendCommandCommand } from '@aws-sdk/client-ssm';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import dotenv from 'dotenv';
 import Deployment from './models/Deployment.js';
+import { buildNginxCommands } from './utils/setupNginxProxy.js';
 
 dotenv.config();
 
@@ -57,40 +58,108 @@ async function updateStatus(id, status, logMsg) {
 
 // ─── Step 1: Run Docker container on EC2 via SSM SendCommand ─────────────────
 
+// async function runDockerOnEC2(clientName, domain, image, port) {
+//   // DEMO MODE: simulate SSM call with a delay
+//   if (DEMO_MODE) {
+//     await new Promise((r) => setTimeout(r, 1500));
+//     return 'mock-ssm-command-' + Date.now();
+//   }
+
+//   const containerName = `deployflow-${clientName}`;
+//   const dockerCommand = [
+//     `echo "Starting deployment cleanup for client: ${clientName}..."`,
+//     // 1. Stop and remove old container with this client name to avoid name conflicts
+//     `docker stop ${containerName} 2>/dev/null || true`,
+//     `docker rm ${containerName} 2>/dev/null || true`,
+//     // 2. Preemptively stop and remove any container using the target port to avoid port conflicts
+//     'CONFLICT_CONTAINERS=$(docker ps -laq --filter "publish=' + port + '")',
+//     'if [ ! -z "$CONFLICT_CONTAINERS" ]; then echo "Stopping conflicting container on port ' + port + '"; docker stop $CONFLICT_CONTAINERS 2>/dev/null || true; docker rm $CONFLICT_CONTAINERS 2>/dev/null || true; fi',
+//     `echo "Pulling image ${image}..."`,
+//     `docker pull ${image}`,
+//     `echo "Launching container ${containerName} on host port ${port}..."`,
+//     `docker run -d --name ${containerName} -p ${port}:80 --label domain=${domain} ${image}`,
+//     `echo "Deployment successfully completed!"`
+//   ].join(' && ');
+
+//   const params = {
+//     InstanceIds: [process.env.EC2_INSTANCE_ID],
+//     DocumentName: 'AWS-RunShellScript',
+//     Parameters: {
+//       commands: [dockerCommand],
+//     },
+//     Comment: `Deploy ${image} for ${clientName} on ${domain} (Port ${port})`,
+//   };
+
+//   const command = new SendCommandCommand(params);
+//   const response = await ssmClient.send(command);
+//   return response.Command?.CommandId;
+// }
+
 async function runDockerOnEC2(clientName, domain, image, port) {
-  // DEMO MODE: simulate SSM call with a delay
+  // DEMO MODE
   if (DEMO_MODE) {
     await new Promise((r) => setTimeout(r, 1500));
     return 'mock-ssm-command-' + Date.now();
   }
 
   const containerName = `deployflow-${clientName}`;
-  const dockerCommand = [
-    `echo "Starting deployment cleanup for client: ${clientName}..."`,
-    // 1. Stop and remove old container with this client name to avoid name conflicts
+
+  // Generate nginx setup commands
+  const nginxCommands = buildNginxCommands(domain, port);
+
+  // Main deployment commands
+  const commands = [
+    `echo "🚀 Starting deployment for ${clientName}"`,
+
+    // Cleanup old container
     `docker stop ${containerName} 2>/dev/null || true`,
     `docker rm ${containerName} 2>/dev/null || true`,
-    // 2. Preemptively stop and remove any container using the target port to avoid port conflicts
-    'CONFLICT_CONTAINERS=$(docker ps -laq --filter "publish=' + port + '")',
-    'if [ ! -z "$CONFLICT_CONTAINERS" ]; then echo "Stopping conflicting container on port ' + port + '"; docker stop $CONFLICT_CONTAINERS 2>/dev/null || true; docker rm $CONFLICT_CONTAINERS 2>/dev/null || true; fi',
-    `echo "Pulling image ${image}..."`,
+
+    // Remove containers already using target port
+    `CONFLICT_CONTAINER=$(docker ps -q --filter publish=${port})`,
+
+    `if [ ! -z "$CONFLICT_CONTAINER" ]; then
+        echo "⚠️ Removing conflicting container on port ${port}";
+        docker stop $CONFLICT_CONTAINER || true;
+        docker rm $CONFLICT_CONTAINER || true;
+     fi`,
+
+    // Pull image
+    `echo "📦 Pulling image ${image}"`,
     `docker pull ${image}`,
-    `echo "Launching container ${containerName} on host port ${port}..."`,
-    `docker run -d --name ${containerName} -p ${port}:80 --label domain=${domain} ${image}`,
-    `echo "Deployment successfully completed!"`
-  ].join(' && ');
+
+    // Start container
+    `echo "🐳 Launching container on port ${port}"`,
+
+    `docker run -d \
+      --restart unless-stopped \
+      --name ${containerName} \
+      -p ${port}:80 \
+      --label domain=${domain} \
+      ${image}`,
+
+    // Nginx reverse proxy setup
+    ...nginxCommands,
+
+    `echo "✅ Deployment completed successfully"`
+  ];
 
   const params = {
     InstanceIds: [process.env.EC2_INSTANCE_ID],
+
     DocumentName: 'AWS-RunShellScript',
+
     Parameters: {
-      commands: [dockerCommand],
+      commands,
     },
-    Comment: `Deploy ${image} for ${clientName} on ${domain} (Port ${port})`,
+
+    Comment: `Deploy ${clientName} (${domain}) on port ${port}`,
   };
 
   const command = new SendCommandCommand(params);
+
   const response = await ssmClient.send(command);
+
   return response.Command?.CommandId;
 }
 
